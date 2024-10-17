@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        label {
+            font-size: 18px;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        table {
+            width: 60%;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        table th, table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #bdc3c7;
+        }
+
+        table th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+
+        table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .rank {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+<h1>Leaderboard</h1>
+
+<label for="quizId">Enter Quiz ID:</label>
+<input type="text" id="quizId" value="quiz_1" />
+<button onclick="loadInitialData()">Connect</button>
+
+<table>
+    <thead>
+    <tr>
+        <th>Rank</th>
+        <th>Username</th>
+        <th>Score</th>
+    </tr>
+    </thead>
+    <tbody id="leaderboard">
+    <!-- Dynamic content will be inserted here -->
+    </tbody>
+</table>
+
+<script>
+    let ws;
+
+    // Function to fetch the initial leaderboard
+    function loadInitialData() {
+        const quizId = document.getElementById("quizId").value;
+
+        // Fetch initial leaderboard from the server
+        fetch(`http://localhost:8001/leaderboard?quiz_id=${quizId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.leaderboard) {
+                    updateLeaderboard(data.leaderboard);
+                }
+                connectWebSocket(quizId);  // Connect WebSocket after the initial load
+            })
+            .catch(error => {
+                console.error('Error fetching leaderboard:', error);
+            });
+    }
+
+    // Function to update the leaderboard in the table
+    function updateLeaderboard(leaderboard) {
+        console.log("Leaderboard Data:", leaderboard);  // Log the received data to the console
+        const leaderboardEl = document.getElementById("leaderboard");
+        leaderboardEl.innerHTML = "";  // Clear current leaderboard
+
+        // Populate the leaderboard table with data
+        leaderboard.forEach((user, index) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+            <td class="rank">${index + 1}</td>
+            <td>${user.username}</td>
+            <td>${user.score}</td>
+        `;
+            leaderboardEl.appendChild(row);
+        });
+    }
+
+    // WebSocket connection to listen for real-time updates
+    function connectWebSocket(quizId) {
+        ws = new WebSocket(`ws://localhost:8002/ws/${quizId}`);
+
+        ws.onmessage = function(event) {
+            const leaderboard = JSON.parse(event.data);
+            updateLeaderboard(leaderboard);  // Update the leaderboard with real-time data
+        };
+
+        ws.onclose = function() {
+            alert("WebSocket connection closed");
+        };
+    }
+</script>
+</body>
+</html>

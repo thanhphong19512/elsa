@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+    networks:
+      - leaderboard-network
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: kafka
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    networks:
+      - leaderboard-network
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - leaderboard-network
+
+  redis-init:
+    image: redis:alpine
+    container_name: redis_init
+    depends_on:
+      - redis
+    networks:
+      - leaderboard-network
+    entrypoint: >
+      sh -c '
+      sleep 5 &&
+      redis-cli -h redis ZADD leaderboard:quiz_1 10 user1 20 user2 30 user3 40 user4 50 user5 60 user6 70 user7 80 user8 90 user9 100 user10 &&
+      redis-cli -h redis ZADD leaderboard:quiz_2 15 user1 25 user2 35 user3 45 user4 55 user5 65 user6 75 user7 85 user8 95 user9 105 user10'
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis_commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - leaderboard-network
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-kafka
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "9000:8080"
+    depends_on:
+      - kafka
+    networks:
+      - leaderboard-network
+
+  leaderboard_service:
+    build: ./leaderboard_service
+    container_name: leaderboard_service
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_HOST=redis
+    depends_on:
+      - kafka
+      - redis
+    ports:
+      - "8001:8000"
+    networks:
+      - leaderboard-network
+
+  websocket_service:
+    build: ./websocket_service
+    container_name: websocket_service
+    environment:
+      - LEADERBOARD_SERVICE_URL=http://leaderboard_service:8001
+    depends_on:
+      - leaderboard_service
+    ports:
+      - "8002:8000"
+    networks:
+      - leaderboard-network
+
+  web_client:
+    image: nginx:alpine
+    container_name: web_client
+    volumes:
+      - ./web_client:/usr/share/nginx/html
+    ports:
+      - "8080:80"
+    networks:
+      - leaderboard-network
+
+networks:
+  leaderboard-network:
+    driver: bridge
