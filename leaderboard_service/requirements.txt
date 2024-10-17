@@ -4,4 +4,3 @@ redis
 aiokafka
 pydantic
 requests
-prometheus-fastapi-instrumentator
