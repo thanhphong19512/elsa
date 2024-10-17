@@ -42,3 +42,13 @@
           - **WebSocket** Service is used to establish connections and update data directly to users in real-time.
           - **Kafka UI** is used to manage queues, topics, and messages.
           - **Redis command** is used for an overall management of Redis.
+
+# HOW TO RUN THIS PROJECT
+
+- Run `docker compose up`
+- Wait until all services up
+- List of services URl:
+  - Client UI http://localhost:8080/
+  - Kafka UI: http://localhost:9000/
+  - Redis Commander: http://localhost:8081/
+- Please check my video
