@@ -2,7 +2,7 @@
 1. ## System Design Document:
     - ### Architecture Diagram:
         - ![img_6.png](img_6.png)
-        - ![img_5.png](img_5.png)
+        - ![img.png](img.png)
     - ### Component Description:
       - **Load Balancer:** Used to distribute requests to the quiz service, especially when there are multiple instances of the quiz service as the application scales up.
 
